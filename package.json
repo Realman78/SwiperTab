@@ -1,15 +1,15 @@
 {
   "name": "swipertab",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "TARGET=firefox vite build --watch --mode development",
-    "dev:firefox": "TARGET=firefox vite build --watch --mode development",
-    "dev:chrome": "TARGET=chrome vite build --watch --mode development",
+    "dev": "node scripts/vite-target.mjs firefox build --watch --mode development",
+    "dev:firefox": "node scripts/vite-target.mjs firefox build --watch --mode development",
+    "dev:chrome": "node scripts/vite-target.mjs chrome build --watch --mode development",
     "build": "npm run build:firefox && npm run build:chrome",
-    "build:firefox": "tsc -b --noEmit && TARGET=firefox vite build",
-    "build:chrome": "tsc -b --noEmit && TARGET=chrome vite build",
+    "build:firefox": "tsc -b --noEmit && node scripts/vite-target.mjs firefox build",
+    "build:chrome": "tsc -b --noEmit && node scripts/vite-target.mjs chrome build",
     "typecheck": "tsc -b --noEmit"
   },
   "dependencies": {
