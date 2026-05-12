@@ -1,3 +1,4 @@
+import browser from "@/lib/browser";
 import { useEffect, useRef, useState } from "react";
 import { motion } from "framer-motion";
 import { Layers, Save } from "lucide-react";
@@ -92,9 +93,7 @@ export function SettingsPage() {
   }
 
   return (
-    <main className="min-h-screen text-foreground">
-      <div className="absolute inset-0 bg-gradient-soft -z-10" />
-
+    <main className="min-h-screen bg-gradient-soft text-foreground">
       <div className="mx-auto max-w-2xl px-6 py-12">
         <header className="flex items-center gap-3 mb-10">
           <div className="relative w-11 h-11">

@@ -1,3 +1,4 @@
+import browser, { type Tabs, type Runtime } from "@/lib/browser";
 import { DEFAULTS, type Settings } from "@/lib/defaults";
 import type { Tab } from "@/lib/tab";
 import type { OgMeta, ToBackground } from "@/lib/messages";
@@ -71,7 +72,7 @@ async function setRuntime(updates: Partial<Runtime>): Promise<void> {
   await browser.storage.session.set(updates);
 }
 
-async function countableTabs(): Promise<browser.tabs.Tab[]> {
+async function countableTabs(): Promise<Tabs.Tab[]> {
   const [tabs, { whitelist }] = await Promise.all([
     browser.tabs.query({}),
     getSettings(),
@@ -83,7 +84,7 @@ async function countableTabs(): Promise<browser.tabs.Tab[]> {
   });
 }
 
-async function findCleanupTab(): Promise<browser.tabs.Tab | null> {
+async function findCleanupTab(): Promise<Tabs.Tab | null> {
   const tabs = await browser.tabs.query({ url: browser.runtime.getURL(CLEANUP_PATH) });
   return tabs[0] ?? null;
 }
@@ -215,47 +216,19 @@ async function handleSettingsChanged(
   await purgeByDomains(addedWhitelist, { screenshots: true, ogMeta: true, lastActive: true });
   await purgeByDomains(addedSkip, { screenshots: true });
   if (screenshotsDisabled) await browser.storage.local.set({ screenshots: {} });
-  await maybeTriggerNow();
-}
-
-async function maybeTriggerNow(): Promise<void> {
-  const { snoozeUntil, bump, bumpUntil } = await getRuntime();
-  if (Date.now() < snoozeUntil) return;
-  const effectiveBump = Date.now() < bumpUntil ? bump : 0;
-  const { threshold } = await getSettings();
-  const tabs = await countableTabs();
-  if (tabs.length <= threshold + effectiveBump) return;
-  const existing = await findCleanupTab();
-  if (existing?.id != null) {
-    await browser.tabs.update(existing.id, { active: true });
-    if (existing.windowId != null) {
-      await browser.windows.update(existing.windowId, { focused: true });
-    }
-    return;
-  }
-  const [active] = await browser.tabs.query({ active: true, currentWindow: true });
-  if (active?.id != null) {
-    try {
-      await browser.tabs.sendMessage(active.id, { type: "SHOW_PROMPT", count: tabs.length });
-      return;
-    } catch {
-      /* fallback below */
-    }
-  }
-  lockTrigger();
-  await browser.tabs.create({ url: browser.runtime.getURL(CLEANUP_PATH), active: true });
 }
 
 async function captureTab(tabId: number): Promise<void> {
   try {
     const tab = await browser.tabs.get(tabId);
+    if (!tab.active || tab.windowId == null) return;
     if (!tab.url || tab.incognito) return;
     const u = new URL(tab.url);
     if (!["http:", "https:"].includes(u.protocol)) return;
     const { screenshotSkipDomains, screenshotsEnabled } = await getSettings();
     if (!screenshotsEnabled) return;
     if (matchesDomain(u.hostname, screenshotSkipDomains)) return;
-    const data = await browser.tabs.captureTab(tabId, { format: "jpeg", quality: 60 });
+    const data = await browser.tabs.captureVisibleTab(tab.windowId, { format: "jpeg", quality: 60 });
     const key = urlKey(tab.url);
     if (!key) return;
     const stored = await browser.storage.local.get("screenshots");
@@ -279,7 +252,7 @@ browser.action.onClicked.addListener(async () => {
   browser.tabs.create({ url: browser.runtime.getURL(CLEANUP_PATH), active: true });
 });
 
-browser.runtime.onMessage.addListener((rawMsg, sender) => {
+browser.runtime.onMessage.addListener((rawMsg: unknown, sender: Runtime.MessageSender) => {
   const msg = rawMsg as ToBackground;
   switch (msg.type) {
     case "PROMPT_CLEAN":
@@ -343,12 +316,16 @@ async function reopenTabs(tabs: Tab[]): Promise<Tab[]> {
   return Promise.all(
     tabs.map(async (orig) => {
       const created = await browser.tabs.create({ url: orig.url, active: false });
-      return { ...orig, id: created.id ?? orig.id };
+      return {
+        ...orig,
+        id: created.id ?? orig.id,
+        windowId: created.windowId ?? orig.windowId,
+      };
     }),
   );
 }
 
-async function openCleanup(triggerTab: browser.tabs.Tab | undefined): Promise<void> {
+async function openCleanup(triggerTab: Tabs.Tab | undefined): Promise<void> {
   if (!triggerTab || triggerTab.id == null) return;
   const url = browser.runtime.getURL(CLEANUP_PATH);
   const isEmpty = !triggerTab.url
@@ -388,6 +365,7 @@ async function buildQueue(): Promise<Tab[]> {
       const shot = screenshots[key];
       return {
         id: t.id as number,
+        windowId: t.windowId ?? -1,
         url: t.url ?? "",
         title: t.title ?? "",
         favIconUrl: t.favIconUrl ?? null,

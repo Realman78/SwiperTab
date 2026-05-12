@@ -4,22 +4,27 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "vite build --watch --mode development",
-    "build": "tsc -b --noEmit && vite build",
+    "dev": "TARGET=firefox vite build --watch --mode development",
+    "dev:firefox": "TARGET=firefox vite build --watch --mode development",
+    "dev:chrome": "TARGET=chrome vite build --watch --mode development",
+    "build": "npm run build:firefox && npm run build:chrome",
+    "build:firefox": "tsc -b --noEmit && TARGET=firefox vite build",
+    "build:chrome": "tsc -b --noEmit && TARGET=chrome vite build",
     "typecheck": "tsc -b --noEmit"
   },
   "dependencies": {
-    "react": "^18.3.1",
-    "react-dom": "^18.3.1",
+    "clsx": "^2.1.1",
     "framer-motion": "^11.11.0",
     "lucide-react": "^0.453.0",
-    "clsx": "^2.1.1",
-    "tailwind-merge": "^2.5.4"
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "tailwind-merge": "^2.5.4",
+    "webextension-polyfill": "^0.12.0"
   },
   "devDependencies": {
-    "@types/firefox-webext-browser": "^120.0.4",
     "@types/react": "^18.3.11",
     "@types/react-dom": "^18.3.1",
+    "@types/webextension-polyfill": "^0.12.5",
     "@vitejs/plugin-react": "^4.3.3",
     "autoprefixer": "^10.4.20",
     "postcss": "^8.4.47",

@@ -1,7 +1,10 @@
 import { defineConfig, type Plugin } from "vite";
 import react from "@vitejs/plugin-react";
-import webExtension, { readJsonFile } from "vite-plugin-web-extension";
+import webExtension from "vite-plugin-web-extension";
 import path from "node:path";
+import { buildManifest } from "./src/manifest";
+
+const target = (process.env.TARGET === "chrome" ? "chrome" : "firefox") as "firefox" | "chrome";
 
 // Firefox extension pages serve assets from moz-extension:// without
 // Access-Control-Allow-Origin headers. The `crossorigin` attribute Vite
@@ -16,11 +19,15 @@ const stripCrossorigin = (): Plugin => ({
 });
 
 export default defineConfig({
+  build: {
+    outDir: `dist-${target}`,
+    emptyOutDir: true,
+  },
   plugins: [
     react(),
     webExtension({
-      manifest: () => readJsonFile("src/manifest.json"),
-      browser: "firefox",
+      manifest: () => buildManifest(target),
+      browser: target,
       additionalInputs: ["src/cleanup/index.html"],
     }),
     stripCrossorigin(),

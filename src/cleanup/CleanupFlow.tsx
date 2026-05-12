@@ -1,3 +1,4 @@
+import browser from "@/lib/browser";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import {
@@ -141,6 +142,15 @@ export function CleanupFlow() {
     browser.runtime.openOptionsPage();
   }, []);
 
+  const visitTab = useCallback(async (tab: Tab) => {
+    try {
+      await browser.tabs.update(tab.id, { active: true });
+      if (tab.windowId >= 0) await browser.windows.update(tab.windowId, { focused: true });
+    } catch {
+      /* tab may have been closed externally */
+    }
+  }, []);
+
   const gateSnooze = useCallback(async () => {
     await send({ type: "PROMPT_SNOOZE" });
     exitTab();
@@ -231,7 +241,7 @@ export function CleanupFlow() {
   }
 
   return (
-    <div className="relative min-h-screen flex flex-col bg-gradient-soft">
+    <div className="relative min-h-screen flex flex-col bg-gradient-soft overflow-hidden">
       {/* header */}
       <div className="flex items-start justify-between px-6 pt-6 pb-4 gap-4 flex-wrap">
         <div className="min-w-0">
@@ -346,6 +356,7 @@ export function CleanupFlow() {
                   isTop={isTopCard}
                   index={stackIndex}
                   onSwipe={triggerSwipe}
+                  onVisit={visitTab}
                   exitDir={exitDir}
                   onExitComplete={onExitComplete}
                 />

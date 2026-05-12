@@ -1,3 +1,4 @@
+import browser from "@/lib/browser";
 import promptCss from "@/theme.css?inline";
 import { useEffect, useState } from "react";
 import { createRoot, type Root } from "react-dom/client";
@@ -10,7 +11,7 @@ const HOST_ID = "swipertab-prompt-host";
 
 if (window === window.top) {
   scrapeOgMeta();
-  browser.runtime.onMessage.addListener((rawMsg) => {
+  browser.runtime.onMessage.addListener((rawMsg: unknown) => {
     const msg = rawMsg as ToContent;
     if (msg?.type === "SHOW_PROMPT") showPrompt(msg.count);
   });

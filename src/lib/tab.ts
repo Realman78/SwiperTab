@@ -1,5 +1,6 @@
 export type Tab = {
   id: number;
+  windowId: number;
   url: string;
   title: string;
   favIconUrl: string | null;

@@ -1,7 +1,10 @@
+import { useRef } from "react";
 import { motion, useMotionValue, useTransform, type PanInfo } from "framer-motion";
-import { Volume2, Clock, Globe } from "lucide-react";
+import { Volume2, Clock, Globe, ExternalLink } from "lucide-react";
 import type { Tab } from "@/lib/tab";
 import { domainGradient } from "@/lib/domain-gradient";
+
+const CLICK_MOVE_THRESHOLD = 5;
 
 export type SwipeDir = "left" | "right" | "up" | "down";
 
@@ -10,6 +13,7 @@ interface Props {
   isTop: boolean;
   index: number;
   onSwipe: (dir: SwipeDir, tab: Tab) => void;
+  onVisit?: (tab: Tab) => void;
   exitDir?: SwipeDir | null;
   onExitComplete?: () => void;
 }
@@ -33,9 +37,10 @@ function formatAge(lastActive: number): string {
   return `${Math.round(hours / 24)}d`;
 }
 
-export function SwipeCard({ tab, isTop, index, onSwipe, exitDir, onExitComplete }: Props) {
+export function SwipeCard({ tab, isTop, index, onSwipe, onVisit, exitDir, onExitComplete }: Props) {
   const x = useMotionValue(0);
   const y = useMotionValue(0);
+  const switchDown = useRef<{ x: number; y: number } | null>(null);
   const rotate = useTransform(x, [-300, 0, 300], [-14, 0, 14], { clamp: true });
   const closeOpacity = useTransform(x, [-180, -40, 0], [1, 0.2, 0]);
   const keepOpacity = useTransform(x, [0, 40, 180], [0, 0.2, 1]);
@@ -93,18 +98,18 @@ export function SwipeCard({ tab, isTop, index, onSwipe, exitDir, onExitComplete 
       initial={false}
       animate={
         exiting && exitTarget
-          ? { ...exitTarget, opacity: 0 }
+          ? { ...exitTarget, scale: 1, opacity: 0 }
           : isTop
-            ? { scale: 1, y: 0 }
-            : { scale: stackScale, y: stackOffset, opacity: index > 2 ? 0 : 1 }
+            ? { scale: 1, x: 0, y: 0, opacity: 1 }
+            : { scale: stackScale, x: 0, y: stackOffset, opacity: index > 2 ? 0 : 1 }
       }
       transition={
         exiting
           ? { type: "tween", duration: 0.5, ease: [0.4, 0, 0.2, 1] }
           : { type: "spring", stiffness: 260, damping: 26 }
       }
-      onAnimationComplete={() => {
-        if (exiting) onExitComplete?.();
+      onAnimationComplete={(def: { opacity?: number }) => {
+        if (exiting && def?.opacity === 0) onExitComplete?.();
       }}
       className={`absolute inset-0 ${isTop ? "cursor-grab active:cursor-grabbing z-30" : "z-10 pointer-events-none"}`}
     >
@@ -147,8 +152,33 @@ export function SwipeCard({ tab, isTop, index, onSwipe, exitDir, onExitComplete 
           <h3 className="text-lg font-semibold text-foreground leading-snug line-clamp-2 text-balance">
             {tab.title || "(untitled)"}
           </h3>
-          <p className="text-xs text-muted-foreground mt-2 truncate">{tab.url}</p>
+          <p className="text-xs text-muted-foreground mt-2 truncate" title={tab.url}>{tab.url}</p>
         </div>
+
+        {isTop && onVisit && (
+          <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-20">
+            <button
+              type="button"
+              onPointerDown={(e) => {
+                switchDown.current = { x: e.clientX, y: e.clientY };
+              }}
+              onPointerUp={(e) => {
+                const d = switchDown.current;
+                switchDown.current = null;
+                if (!d) return;
+                const dx = e.clientX - d.x;
+                const dy = e.clientY - d.y;
+                if (Math.hypot(dx, dy) > CLICK_MOVE_THRESHOLD) return;
+                onVisit(tab);
+              }}
+              onPointerCancel={() => { switchDown.current = null; }}
+              className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-full hover:bg-secondary border border-border text-xs font-medium text-foreground bg-card transition shadow-soft"
+            >
+              <ExternalLink className="w-3.5 h-3.5" />
+              Switch
+            </button>
+          </div>
+        )}
 
         {/* directional vignettes */}
         {isTop && (
