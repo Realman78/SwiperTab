@@ -1,0 +1,31 @@
+import { defineConfig, type Plugin } from "vite";
+import react from "@vitejs/plugin-react";
+import webExtension, { readJsonFile } from "vite-plugin-web-extension";
+import path from "node:path";
+
+// Firefox extension pages serve assets from moz-extension:// without
+// Access-Control-Allow-Origin headers. The `crossorigin` attribute Vite
+// adds to <link> and <script> tags triggers CORS mode and the stylesheet
+// load fails silently. Strip it.
+const stripCrossorigin = (): Plugin => ({
+  name: "swipertab:strip-crossorigin",
+  transformIndexHtml: {
+    order: "post",
+    handler: (html) => html.replace(/\s+crossorigin(="[^"]*")?/g, ""),
+  },
+});
+
+export default defineConfig({
+  plugins: [
+    react(),
+    webExtension({
+      manifest: () => readJsonFile("src/manifest.json"),
+      browser: "firefox",
+      additionalInputs: ["src/cleanup/index.html"],
+    }),
+    stripCrossorigin(),
+  ],
+  resolve: {
+    alias: { "@": path.resolve(import.meta.dirname, "./src") },
+  },
+});

@@ -1,0 +1,118 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* SwiperTab — Sunset theme.
+   Tokens declared on both :root (regular extension pages)
+   and :host (shadow root for the trigger prompt overlay)
+   so the same components work in both contexts.
+   Light is default; dark via prefers-color-scheme. */
+
+@layer base {
+  :root,
+  :host {
+    --background: 35 60% 97%;
+    --foreground: 20 25% 12%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 20 25% 12%;
+
+    --primary: 18 92% 56%;
+    --primary-foreground: 35 60% 98%;
+    --primary-glow: 32 100% 65%;
+
+    --secondary: 30 50% 94%;
+    --secondary-foreground: 20 25% 18%;
+
+    --muted: 30 30% 94%;
+    --muted-foreground: 20 12% 42%;
+
+    --accent: 340 85% 62%;
+    --accent-foreground: 0 0% 100%;
+
+    --keep: 152 60% 45%;
+    --keep-foreground: 0 0% 100%;
+    --close: 4 80% 58%;
+    --close-foreground: 0 0% 100%;
+
+    --border: 25 30% 88%;
+    --input: 25 30% 88%;
+    --ring: 18 92% 56%;
+
+    --radius: 1.25rem;
+
+    --gradient-primary: linear-gradient(135deg, hsl(18 92% 56%), hsl(340 85% 62%));
+    --gradient-soft: linear-gradient(135deg, hsl(35 100% 96%), hsl(340 60% 96%));
+    --gradient-keep: linear-gradient(135deg, hsl(152 60% 45%), hsl(170 70% 50%));
+    --gradient-close: linear-gradient(135deg, hsl(4 80% 58%), hsl(340 85% 62%));
+
+    --shadow-card: 0 20px 50px -20px hsl(18 60% 30% / 0.18), 0 8px 20px -10px hsl(18 60% 30% / 0.1);
+    --shadow-glow: 0 0 60px hsl(32 100% 65% / 0.45);
+    --shadow-soft: 0 4px 14px -4px hsl(20 25% 12% / 0.08);
+
+    --transition-bounce: cubic-bezier(0.34, 1.56, 0.64, 1);
+    --transition-smooth: cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root,
+    :host {
+      --background: 20 25% 8%;
+      --foreground: 35 30% 95%;
+
+      --card: 20 22% 12%;
+      --card-foreground: 35 30% 95%;
+
+      --primary: 22 95% 60%;
+      --primary-foreground: 20 25% 8%;
+      --primary-glow: 32 100% 68%;
+
+      --secondary: 20 18% 16%;
+      --secondary-foreground: 35 30% 95%;
+
+      --muted: 20 15% 18%;
+      --muted-foreground: 30 15% 65%;
+
+      --accent: 340 85% 65%;
+      --accent-foreground: 20 25% 8%;
+
+      --keep: 152 65% 50%;
+      --keep-foreground: 20 25% 8%;
+      --close: 4 85% 62%;
+      --close-foreground: 0 0% 100%;
+
+      --border: 20 18% 20%;
+      --input: 20 18% 20%;
+      --ring: 22 95% 60%;
+
+      --gradient-primary: linear-gradient(135deg, hsl(22 95% 60%), hsl(340 85% 65%));
+      --gradient-soft: linear-gradient(135deg, hsl(20 30% 14%), hsl(340 30% 14%));
+      --gradient-keep: linear-gradient(135deg, hsl(152 65% 50%), hsl(170 70% 50%));
+      --gradient-close: linear-gradient(135deg, hsl(4 85% 62%), hsl(340 85% 65%));
+
+      --shadow-card: 0 20px 50px -20px hsl(0 0% 0% / 0.6), 0 8px 20px -10px hsl(0 0% 0% / 0.4);
+      --shadow-glow: 0 0 80px hsl(32 100% 68% / 0.35);
+      --shadow-soft: 0 4px 14px -4px hsl(0 0% 0% / 0.4);
+    }
+  }
+
+  * { border-color: hsl(var(--border)); }
+
+  body {
+    background-color: hsl(var(--background));
+    color: hsl(var(--foreground));
+    font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+}
+
+@layer utilities {
+  .bg-gradient-primary { background: var(--gradient-primary); }
+  .bg-gradient-soft { background: var(--gradient-soft); }
+  .bg-gradient-keep { background: var(--gradient-keep); }
+  .bg-gradient-close { background: var(--gradient-close); }
+  .shadow-card { box-shadow: var(--shadow-card); }
+  .shadow-glow { box-shadow: var(--shadow-glow); }
+  .shadow-soft { box-shadow: var(--shadow-soft); }
+  .text-balance { text-wrap: balance; }
+}
