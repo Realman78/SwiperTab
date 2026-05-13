@@ -111,11 +111,11 @@ browser.tabs.onCreated.addListener(async (newTab) => {
   if (tabs.length < threshold + effectiveBump + 1) return;
   
   const newTabId = newTab.id;
+  lockTrigger();
   setTimeout(async () => {
     try {
       await browser.tabs.sendMessage(newTabId, { type: "SHOW_PROMPT", count: tabs.length });
     } catch {
-      lockTrigger();
       browser.tabs.create({ url: browser.runtime.getURL(CLEANUP_PATH), active: true });
     }
   }, PROMPT_DELAY_MS);

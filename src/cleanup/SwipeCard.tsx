@@ -156,7 +156,7 @@ export function SwipeCard({ tab, isTop, index, onSwipe, onVisit, exitDir, onExit
         </div>
 
         {isTop && onVisit && (
-          <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-20">
+          <div className="absolute bottom-1 left-1/2 -translate-x-1/2 z-20">
             <button
               type="button"
               onPointerDown={(e) => {
