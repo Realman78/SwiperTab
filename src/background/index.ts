@@ -9,7 +9,7 @@ const SNOOZE_MS = 10 * 60 * 1000;
 const POST_CLEANUP_SNOOZE_MS = 5 * 60 * 1000;
 const DISMISS_SNOOZE_MS = 15 * 1000;
 const BUMP_TTL_MS = 20 * 60 * 1000;
-const SCREENSHOT_CAP = 200;
+const SCREENSHOT_CAP = 80;
 const OGMETA_CAP = 500;
 const DWELL_MS = 3000;
 const PROMPT_DELAY_MS = 400;
@@ -27,13 +27,39 @@ type OgMetaMap = Record<string, Stamped<OgMeta>>;
 let dwellTimer: ReturnType<typeof setTimeout> | null = null;
 let triggerLockedAt = 0;
 
+// Restore lock across SW restarts (Chrome may kill the worker between events).
+browser.storage.session.get({ triggerLockedAt: 0 }).then((v) => {
+  const persisted = (v.triggerLockedAt as number) ?? 0;
+  if (persisted > triggerLockedAt) triggerLockedAt = persisted;
+});
+
 function lockTrigger(): void {
   triggerLockedAt = Date.now();
+  browser.storage.session.set({ triggerLockedAt }).catch(() => {});
 }
 
 function triggerLocked(): boolean {
   return Date.now() - triggerLockedAt < TRIGGER_LOCK_MS;
 }
+
+type PendingPrompt = { tabId: number; count: number; deadline: number };
+
+async function deliverPendingPrompt(p: PendingPrompt): Promise<void> {
+  if (Date.now() > p.deadline) return;
+  try {
+    await browser.tabs.sendMessage(p.tabId, { type: "SHOW_PROMPT", count: p.count });
+  } catch {
+    browser.tabs.create({ url: browser.runtime.getURL(CLEANUP_PATH), active: true });
+  }
+}
+
+// On SW startup, recover any prompt scheduled before a worker restart.
+browser.storage.session.get({ pendingPrompt: null }).then(async (v) => {
+  const p = v.pendingPrompt as PendingPrompt | null;
+  if (!p) return;
+  await browser.storage.session.set({ pendingPrompt: null });
+  await deliverPendingPrompt(p);
+});
 
 function urlKey(url: string | undefined): string | null {
   if (!url) return null;
@@ -111,13 +137,19 @@ browser.tabs.onCreated.addListener(async (newTab) => {
   if (tabs.length < threshold + effectiveBump + 1) return;
   
   const newTabId = newTab.id;
+  const pending: PendingPrompt = {
+    tabId: newTabId,
+    count: tabs.length,
+    deadline: Date.now() + 5000,
+  };
   lockTrigger();
+  // Persist so a SW restart during the delay window doesn't drop the prompt.
+  await browser.storage.session.set({ pendingPrompt: pending });
   setTimeout(async () => {
-    try {
-      await browser.tabs.sendMessage(newTabId, { type: "SHOW_PROMPT", count: tabs.length });
-    } catch {
-      browser.tabs.create({ url: browser.runtime.getURL(CLEANUP_PATH), active: true });
-    }
+    const { pendingPrompt } = await browser.storage.session.get({ pendingPrompt: null });
+    if (!pendingPrompt || (pendingPrompt as PendingPrompt).tabId !== newTabId) return;
+    await browser.storage.session.set({ pendingPrompt: null });
+    await deliverPendingPrompt(pending);
   }, PROMPT_DELAY_MS);
 });
 

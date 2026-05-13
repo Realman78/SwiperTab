@@ -65,32 +65,48 @@ export function CleanupFlow() {
     return () => browser.tabs.onRemoved.removeListener(onRemoved);
   }, []);
 
-  // Pick up tabs opened after the cleanup page loaded.
-  // Appended to the end so freshly-opened tabs don't jump to the front of the queue.
+  // Pick up tabs opened after the cleanup page loaded, and update entries whose
+  // url/title changed via navigation. New tabs append to the end so freshly-opened
+  // tabs don't jump to the front. A trailing 250ms debounce coalesces session-restore
+  // bursts (one workspace-restore can fire onUpdated 100+ times).
   useEffect(() => {
     if (loading) return;
+    let timer: ReturnType<typeof setTimeout> | null = null;
     const refresh = async () => {
       const fresh = await send<Tab[]>({ type: "GET_QUEUE" });
       setQueue((q) => {
-        const have = new Set(q.map((t) => t.id));
         const swiped = new Set(
           historyRef.current.flatMap((h) => h.removed.map((t) => t.id)),
         );
+        const freshById = new Map(fresh.map((t) => [t.id, t]));
+        const have = new Set(q.map((t) => t.id));
+        const updated = q.map((t) => freshById.get(t.id) ?? t);
         const added = fresh.filter((t) => !have.has(t.id) && !swiped.has(t.id));
-        return added.length ? [...q, ...added] : q;
+        const changed = added.length > 0 || updated.some((t, i) => t !== q[i]);
+        return changed ? [...updated, ...added] : q;
       });
+    };
+    const scheduleRefresh = () => {
+      if (timer) return;
+      timer = setTimeout(() => {
+        timer = null;
+        refresh();
+      }, 250);
     };
     const onUpdated = (
       _tabId: number,
-      changeInfo: { status?: string },
+      changeInfo: { status?: string; url?: string },
       tab: { url?: string },
     ) => {
-      if (changeInfo.status !== "complete") return;
+      if (changeInfo.status !== "complete" && !changeInfo.url) return;
       if (!tab.url?.startsWith("http")) return;
-      refresh();
+      scheduleRefresh();
     };
     browser.tabs.onUpdated.addListener(onUpdated);
-    return () => browser.tabs.onUpdated.removeListener(onUpdated);
+    return () => {
+      browser.tabs.onUpdated.removeListener(onUpdated);
+      if (timer) clearTimeout(timer);
+    };
   }, [loading]);
 
   const pushHistory = useCallback((entry: HistoryEntry) => {
@@ -172,8 +188,10 @@ export function CleanupFlow() {
 
   const visitTab = useCallback(async (tab: Tab) => {
     try {
+      // Read live windowId — the tab may have been moved to another window since the queue snapshot.
+      const current = await browser.tabs.get(tab.id);
       await browser.tabs.update(tab.id, { active: true });
-      if (tab.windowId >= 0) await browser.windows.update(tab.windowId, { focused: true });
+      if (current.windowId != null) await browser.windows.update(current.windowId, { focused: true });
     } catch {
       /* tab may have been closed externally */
     }
