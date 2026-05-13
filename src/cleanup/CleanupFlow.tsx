@@ -65,6 +65,34 @@ export function CleanupFlow() {
     return () => browser.tabs.onRemoved.removeListener(onRemoved);
   }, []);
 
+  // Pick up tabs opened after the cleanup page loaded.
+  // Appended to the end so freshly-opened tabs don't jump to the front of the queue.
+  useEffect(() => {
+    if (loading) return;
+    const refresh = async () => {
+      const fresh = await send<Tab[]>({ type: "GET_QUEUE" });
+      setQueue((q) => {
+        const have = new Set(q.map((t) => t.id));
+        const swiped = new Set(
+          historyRef.current.flatMap((h) => h.removed.map((t) => t.id)),
+        );
+        const added = fresh.filter((t) => !have.has(t.id) && !swiped.has(t.id));
+        return added.length ? [...q, ...added] : q;
+      });
+    };
+    const onUpdated = (
+      _tabId: number,
+      changeInfo: { status?: string },
+      tab: { url?: string },
+    ) => {
+      if (changeInfo.status !== "complete") return;
+      if (!tab.url?.startsWith("http")) return;
+      refresh();
+    };
+    browser.tabs.onUpdated.addListener(onUpdated);
+    return () => browser.tabs.onUpdated.removeListener(onUpdated);
+  }, [loading]);
+
   const pushHistory = useCallback((entry: HistoryEntry) => {
     setHistory((h) => {
       const next = [...h, entry];
