@@ -40,7 +40,14 @@ export function buildManifest(target: Target): Record<string, unknown> {
     return {
       ...base,
       browser_specific_settings: {
-        gecko: { id: "swipertab@marindedic.com", strict_min_version: "115.0" },
+        gecko: {
+          id: "swipertab@marindedic.com",
+          strict_min_version: "140.0",
+          data_collection_permissions: { required: ["none"] },
+        },
+        gecko_android: {
+          strict_min_version: "142.0",
+        },
       },
       background: { scripts: ["src/background/index.ts"] },
     };
