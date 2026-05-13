@@ -4,7 +4,7 @@ export function buildManifest(target: Target): Record<string, unknown> {
   const base: Record<string, unknown> = {
     manifest_version: 3,
     name: "SwiperTab",
-    version: "0.1.0",
+    version: "1.0.0",
     description: "Clean up your tabs with a swipe.",
     permissions: ["tabs", "storage", "alarms"],
     host_permissions: ["<all_urls>"],
@@ -40,7 +40,7 @@ export function buildManifest(target: Target): Record<string, unknown> {
     return {
       ...base,
       browser_specific_settings: {
-        gecko: { id: "swipertab@example.com", strict_min_version: "115.0" },
+        gecko: { id: "swipertab@marindedic.com", strict_min_version: "115.0" },
       },
       background: { scripts: ["src/background/index.ts"] },
     };

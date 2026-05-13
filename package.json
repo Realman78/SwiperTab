@@ -10,7 +10,11 @@
     "build": "npm run build:firefox && npm run build:chrome",
     "build:firefox": "tsc -b --noEmit && node scripts/vite-target.mjs firefox build",
     "build:chrome": "tsc -b --noEmit && node scripts/vite-target.mjs chrome build",
-    "typecheck": "tsc -b --noEmit"
+    "typecheck": "tsc -b --noEmit",
+    "package": "npm run package:firefox && npm run package:chrome && npm run package:source",
+    "package:firefox": "npm run build:firefox && node scripts/package.mjs firefox",
+    "package:chrome": "npm run build:chrome && node scripts/package.mjs chrome",
+    "package:source": "node scripts/package.mjs source"
   },
   "dependencies": {
     "clsx": "^2.1.1",
